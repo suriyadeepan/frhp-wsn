@@ -4,6 +4,8 @@
 #include <Timer.h>
 #include "CC2420.h"
 
+#define BEACON 11
+
 /*
 
 	 [ ] Add a timer - fires every SYNC seconds 
@@ -45,34 +47,34 @@ implementation
 	
 	// current channel status
 	int currentChannel = 0;
-	int dchan = 16;
 
-	uint32_t switch_time = 0;
-
+	// clock value
 	uint32_t loc = 0; 
 
-	int rcount = 0;
 
 	//_________________________________________//
-
-	void setBeaconChannel();
-	void setDataChannel();
+	void setChannel(int);
+	int getChannel();
 	void sendDataPacket();
-	void updateDataChannel();
+	//_________________________________________//
+
+
+
 
 	//_________________________________________//
 
 	event void Boot.booted() {
 		call RadioControl.start();
 	}
+	//_________________________________________//
 
 
+
+
+	//_________________________________________//
 	event message_t* Receive.receive(message_t* msgPtr, void* payload, uint8_t len)
 	{
 
-		//uint32_t tnow;
-
-		call Leds.led0Toggle();
 
 		// beacon messages
 		if (!locked && call PacketTimeStamp.isValid(msgPtr)) {
@@ -80,164 +82,94 @@ implementation
 			radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
 			uint32_t rxTimestamp = call PacketTimeStamp.timestamp(msgPtr);
 
-			/*test_ftsp_msg_t* report = (test_ftsp_msg_t*)call Packet.getPayload(&msg, sizeof(test_ftsp_msg_t));
-
-
-				report->src_addr = TOS_NODE_ID;
-				report->counter = rcm->counter;
-				report->local_rx_timestamp = rxTimestamp;
-				report->is_synced = call GlobalTime.local2Global(&rxTimestamp);
-				report->global_rx_timestamp = rxTimestamp;
-				report->skew_times_1000000 = (uint32_t)call TimeSyncInfo.getSkew()*1000000UL;
-				report->ftsp_root_addr = call TimeSyncInfo.getRootID();
-				report->ftsp_seq = call TimeSyncInfo.getSeqNum();
-				report->ftsp_table_entries = call TimeSyncInfo.getNumEntries();*/
-
 			call GlobalTime.local2Global(&rxTimestamp);
 
-			if(rcm->counter <= 200){
-				printf("\nDP: %u %lu",rcm->counter,rxTimestamp);
-				rcount = rcm->counter;
+			// if data packet - toggle led 01
+			if(rcm->counter > 2000){
+				call Leds.led1Toggle();
+				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
 			}
 
+			// if not data packet - toggle led 00
 			else{
-
-				printf("\n%u %lu",rcm->counter,rxTimestamp);
-				printfflush();
-
-				WAIT_FOR_SYNC = FALSE;
-				count = 0;
-				rcount = 0;
-
-				if(TOS_NODE_ID == 3){
-					loc = call LocalClock.getNow();
-					call GlobalTime.local2Global(&loc);
-					printf("\n<ST : %u > <loc : %u >\n",switch_time,loc);
-				}
-
-				//updateDataChannel();
-				setDataChannel();
+				call Leds.led0Toggle();
+				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
 			}
-		}
-
-		// data packets
-		/*
-
-			 else{
-
-			 if(!locked){
-
-		// get payload
-		// get count, node_id from payload
-		// print <count,node_id> via serial port
 
 		}
-
-
-
-		}*/
 
 		return msgPtr;
 	}
+	//_________________________________________//
 
-	event void AMSend.sendDone(message_t* ptr, error_t success) {
-		locked = FALSE;
-		return;
-	}
+
+
 
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
-
 		call LocalClock.startPeriodic(20);
-		setBeaconChannel();
+		setChannel(BEACON);
+		printf("\n<CCH %d> <Booted>",currentChannel);
 	}
 	//_____________________________________________________//
 
-//Event called when clock fires
-	//-----------------------------------------------------//
-	event void LocalClock.fired()
-	{
 
+
+
+	//Event called when clock fires
+	//-----------------------------------------------------//
+	event void LocalClock.fired(){
+		
 		loc = call LocalClock.getNow();
 		call GlobalTime.local2Global(&loc);
+		printf("\n<gC %lu><CCH %d>",loc,currentChannel);
 
-
-		if(!WAIT_FOR_SYNC){
-
-			// set time for channel switching - sender
-			if(count == 0 && TOS_NODE_ID == 2){
-				switch_time = loc + 4000;
-			}
-
-			// set time for channel switching - receiver
-			if(rcount == 0 && TOS_NODE_ID == 3){
-				switch_time = loc + 4000;
-			}
-
-			if(loc > switch_time)
-				updateDataChannel();
-	
-				
-
-			setDataChannel();
-
-			if(count > 200){
-
-				setBeaconChannel();
-				WAIT_FOR_SYNC = TRUE;
-			}
-			else{
-
-				count++;
-
-				//if sender
-				//  construct packet and send
-				if(TOS_NODE_ID == 2){
-					printf("\n<Channel : %d> <Count : %u> <Clock : %u>\n",currentChannel,count,loc);
-					setDataChannel();
-					sendDataPacket();
-				}
-
-				else
-					printf("\n<Channel : %d> <Count : %u> <Clock : %u>\n",currentChannel,rcount,loc);
-
-			}
-			//call Leds.led1Toggle();
+		if(getChannel( ) != currentChannel){
+			currentChannel = getChannel();
+			printf("\n<gC %lu><CCH %d>",loc,currentChannel);
+			setChannel(currentChannel);
 		}
+
+		count++;
+
+		//if sender
+		//  construct packet and send
+		if(TOS_NODE_ID == 2 && currentChannel != 11)
+			sendDataPacket();
+		
+	}
+//_____________________________________________________//
+
+
+
+
+	//-----------------------------------------------------//
+	void setChannel(int chan){ 
+		currentChannel = chan;
+		call CC2420Config.setChannel(chan);
+		call CC2420Config.sync();
+		while(locked);
 	}
 	//_____________________________________________________//
 
 
+
+
 	//-----------------------------------------------------//
-	void setBeaconChannel(){ 
-		currentChannel = 15;
-		call CC2420Config.setChannel(15);
-		call CC2420Config.sync();
+	int  getChannel( ){ 
+		if(loc < 5000)
+			return 11;
 
-		while(locked);
-
+		//return ceil( ( (double)((loc/1000)/65) * 14 ) );
+		//return (loc/5000) + 12;
+		return ( (loc/1000)%10 ) + 12; 
 	}
-	void setDataChannel(){ 
-
-		currentChannel = dchan;
-		call CC2420Config.setChannel(dchan);
-		call CC2420Config.sync();
-
-		while(locked);
-
-	}
-
-	void updateDataChannel(){
-
-		dchan = dchan + 1;
-
-		if(dchan > 20)
-			dchan = 16;
-	}
+	//_____________________________________________________//
 
 
 
 
+	//_____________________________________________________//
 	void sendDataPacket(){
 
 		radio_count_msg_t* my_data_pkt = (radio_count_msg_t*)call Packet.getPayload(&msg, sizeof(radio_count_msg_t));
@@ -247,14 +179,17 @@ implementation
 			locked = TRUE;
 		}
 	}
-
 	//_____________________________________________________//
 
 
 
+
+	//_________________________________________//
+	event void AMSend.sendDone(message_t* ptr, error_t success) {
+		locked = FALSE; return;
+	}
 	// channel switch  event
 	event void CC2420Config.syncDone(error_t error){ locked = FALSE; return;}
-
-
 	event void RadioControl.stopDone(error_t error){}
+	//_________________________________________//
 }

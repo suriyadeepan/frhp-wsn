@@ -13,4 +13,4 @@
 ## TODO:
 ------------
 
--[ ] Add int getChannel(uint32_t globalClock) - maps global timestamp to channel
+-[x] Add int getChannel(uint32_t globalClock) - maps global timestamp to channel

@@ -157,12 +157,14 @@ implementation
 
 	//-----------------------------------------------------//
 	int  getChannel( ){ 
-		if(loc < 5000)
+
+		int band = (loc/1000)%10; 
+
+		if(band == 9 || loc < 5000)
 			return 11;
 
 		//return ceil( ( (double)((loc/1000)/65) * 14 ) );
-		//return (loc/5000) + 12;
-		return ( (loc/1000)%10 ) + 12; 
+		return (band + 12); 
 	}
 	//_____________________________________________________//
 

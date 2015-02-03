@@ -1,0 +1,6 @@
+build*
+*.report
+*.log
+*report*
+*.class
+*.*swp

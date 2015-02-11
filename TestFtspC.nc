@@ -85,7 +85,7 @@ implementation
 			call GlobalTime.local2Global(&rxTimestamp);
 
 			// if data packet - toggle led 01
-			if(rcm->counter > 2000){
+			if( currentChannel != 11 ){
 				call Leds.led1Toggle();
 				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
 			}
@@ -93,8 +93,10 @@ implementation
 			// if not data packet - toggle led 00
 			else{
 				call Leds.led0Toggle();
-				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
+				printf("\nBP: <Count %u>",rcm->counter);
 			}
+
+			printfflush();
 
 		}
 
@@ -122,11 +124,11 @@ implementation
 		
 		loc = call LocalClock.getNow();
 		call GlobalTime.local2Global(&loc);
-		printf("\n<gC %lu><CCH %d>",loc,currentChannel);
+		//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
 
 		if(getChannel( ) != currentChannel){
 			currentChannel = getChannel();
-			printf("\n<gC %lu><CCH %d>",loc,currentChannel);
+			//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
 			setChannel(currentChannel);
 		}
 
@@ -158,13 +160,29 @@ implementation
 	//-----------------------------------------------------//
 	int  getChannel( ){ 
 
-		int band = (loc/1000)%10; 
+		int band = (loc/10)%10; 
 
-		if(band == 9 || loc < 5000)
+		if( (loc/1000)%10 == 9 || loc < 5000 )
 			return 11;
 
-		//return ceil( ( (double)((loc/1000)/65) * 14 ) );
-		return (band + 12); 
+		if(TOS_NODE_ID == 2){
+
+			if(band < 5)
+				return TOS_NODE_ID + 10;
+
+			else
+				return TOS_NODE_ID + 11;
+		}
+
+		else{
+
+			if(band < 5)
+				return TOS_NODE_ID + 11;
+		
+			else
+				return TOS_NODE_ID + 10;
+		}
+
 	}
 	//_____________________________________________________//
 

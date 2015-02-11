@@ -51,6 +51,9 @@ implementation
 	// clock value
 	uint32_t loc = 0; 
 
+	// true -> sender/ false -> receiver mode
+	bool MODE = TRUE;
+
 
 	//_________________________________________//
 	void setChannel(int);
@@ -110,6 +113,7 @@ implementation
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
 		call LocalClock.startPeriodic(20);
+		MODE = FALSE;
 		setChannel(BEACON);
 		printf("\n<CCH %d> <Booted>",currentChannel);
 	}
@@ -136,7 +140,7 @@ implementation
 
 		//if sender
 		//  construct packet and send
-		if(TOS_NODE_ID == 2 && currentChannel != 11)
+		if( MODE == TRUE && currentChannel != 11)
 			sendDataPacket();
 		
 	}
@@ -162,25 +166,34 @@ implementation
 
 		int band = (loc/10)%10; 
 
-		if( (loc/1000)%10 == 9 || loc < 5000 )
+		if( (loc/1000)%10 == 9 || loc < 5000 ){
 			return 11;
+		}
 
-		if(TOS_NODE_ID == 2){
+		if(TOS_NODE_ID % 2 == 0){
 
-			if(band < 5)
+			if(band < 5){
+				MODE = FALSE;
 				return TOS_NODE_ID + 10;
+			}
 
-			else
+			else{
+				MODE = TRUE;
 				return TOS_NODE_ID + 11;
+			}
 		}
 
 		else{
 
-			if(band < 5)
+			if(band < 5){
+				MODE = TRUE;
 				return TOS_NODE_ID + 11;
+			}
 		
-			else
+			else{
+				MODE = FALSE;
 				return TOS_NODE_ID + 10;
+			}
 		}
 
 	}

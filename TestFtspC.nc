@@ -44,6 +44,7 @@ implementation
 	bool locked = FALSE;
 	bool WAIT_FOR_SYNC = TRUE;
 	int count = 0;
+	int rcount = 0;
 	
 	// current channel status
 	int currentChannel = 0;
@@ -90,7 +91,8 @@ implementation
 			// if data packet - toggle led 01
 			if( currentChannel != 11 ){
 				call Leds.led1Toggle();
-				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
+				rcount = rcm->counter;
+				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcount);
 			}
 
 			// if not data packet - toggle led 00
@@ -206,7 +208,11 @@ implementation
 	void sendDataPacket(){
 
 		radio_count_msg_t* my_data_pkt = (radio_count_msg_t*)call Packet.getPayload(&msg, sizeof(radio_count_msg_t));
-		my_data_pkt->counter = count;
+
+		if(TOS_NODE_ID == 2)
+			my_data_pkt->counter = count;
+		else
+			my_data_pkt->counter = rcount;
 
 		if(call AMSend.send(AM_BROADCAST_ADDR,&msg,sizeof(radio_count_msg_t)) == SUCCESS) {
 			locked = TRUE;

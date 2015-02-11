@@ -16,7 +16,7 @@
 - [x] Add int getChannel(uint32_t globalClock) - maps global timestamp to channel
 - [x] Generalize getChannel( ) for 'n' nodes
 - [x] forward each packet 
-- [ ] increase channel_switch interval to 500ms, 3rd node receives packets
+- [x] check if 3rd node receives @50, @100, @200, @500 channel switch
 
 ## Control Flow
 ------------

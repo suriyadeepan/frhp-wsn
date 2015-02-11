@@ -140,7 +140,7 @@ implementation
 
 		//if sender
 		//  construct packet and send
-		if( MODE == TRUE && currentChannel != 11)
+		if( count % 2 == 0 && MODE == TRUE && currentChannel != 11)
 			sendDataPacket();
 		
 	}

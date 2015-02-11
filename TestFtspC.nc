@@ -44,7 +44,9 @@ implementation
 	bool locked = FALSE;
 	bool WAIT_FOR_SYNC = TRUE;
 	int count = 0;
+	int timeCount = 0;
 	int rcount = 0;
+	int packetCount = 0;
 	
 	// current channel status
 	int currentChannel = 0;
@@ -92,13 +94,17 @@ implementation
 			if( currentChannel != 11 ){
 				call Leds.led1Toggle();
 				rcount = rcm->counter;
-				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcount);
+				//printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcount);
+				packetCount++;
 			}
 
 			// if not data packet - toggle led 00
 			else{
+				printf("\n<PacketCount %d><TimeCount %d>",packetCount,(count - timeCount)*20 );
+				packetCount = 0;
 				call Leds.led0Toggle();
-				printf("\nBP: <Count %u>",rcm->counter);
+				//printf("\nBP: <Count %u>",rcm->counter);
+				timeCount = count;
 			}
 
 			printfflush();

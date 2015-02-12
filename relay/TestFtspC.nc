@@ -6,6 +6,8 @@
 
 #define BEACON 11
 
+#define CHANNEL (TOS_NODE_ID+10)
+
 /*
 
 	 [ ] Add a timer - fires every SYNC seconds 
@@ -89,7 +91,7 @@ implementation
 
 			rcount = rcm->counter;
 
-			setChannel(14);
+			setChannel(CHANNEL+1);
 			sendDataPacket(rcount);
 		}
 
@@ -103,7 +105,7 @@ implementation
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
 		call LocalClock.startPeriodic(20);
-		setChannel(13);
+		setChannel(CHANNEL);
 		printf("\nPackets Received || Packets Sent per second\n");
 		printfflush();
 	}
@@ -189,7 +191,7 @@ implementation
 	//_________________________________________//
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
 
-		setChannel(13);
+		setChannel(CHANNEL);
 		call Leds.led2Toggle(); 
 		pktsSent++; 
 		locked = FALSE; 

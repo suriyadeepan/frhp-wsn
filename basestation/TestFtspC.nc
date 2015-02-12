@@ -5,6 +5,7 @@
 #include "CC2420.h"
 
 #define BEACON 11
+#define CHANNEL (TOS_NODE_ID+ 10)
 
 module TestFtspC
 {
@@ -84,7 +85,7 @@ implementation
 	event void RadioControl.startDone(error_t err) {
 		pktsReceived = 0;
 		call LocalClock.startPeriodic(1000);
-		setChannel(14);
+		setChannel(CHANNEL);
 		printf("\nPackets received per second\n");
 		printfflush();
 	}

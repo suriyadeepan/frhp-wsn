@@ -56,11 +56,18 @@ implementation
 	// clock value
 	uint32_t loc = 0; 
 
+	// channel sequence
+	int channelSeq[3];
+	/*channelSeq[0] = TOS_NODE_ID + 10;
+	channelSeq[1] = TOS_NODE_ID + 10 + 5;
+	channelSeq[2] = TOS_NODE_ID + 10 + 5 + 3;*/
+
 
 	//_________________________________________//
 	void setChannel(int);
 	int getChannel();
 	void sendDataPacket(unsigned int);
+	int getNextChannel();
 	//_________________________________________//
 
 
@@ -80,19 +87,24 @@ implementation
 	event message_t* Receive.receive(message_t* msgPtr, void* payload, uint8_t len)
 	{
 
-		call Leds.led1Toggle();
 
 		// beacon messages
 		if (!locked){
 
 			radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
 
-			pktsReceived++;
+			// check if its a data packet or not
+			if(currentChannel == BEACON)
+				call Leds.led0Toggle();
 
-			rcount = rcm->counter;
-
-			setChannel(CHANNEL+1);
-			sendDataPacket(rcount);
+			else{
+				call Leds.led1Toggle();
+				pktsReceived++;
+				rcount = rcm->counter;
+				//setChannel(14);
+				setChannel(currentChannel+1);
+				sendDataPacket(rcount);
+			}
 		}
 
 		return msgPtr;
@@ -104,10 +116,24 @@ implementation
 
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
+
+		int i=0;
+
 		call LocalClock.startPeriodic(20);
-		setChannel(CHANNEL);
-		printf("\nPackets Received || Packets Sent per second\n");
+		setChannel(BEACON);
+		currentChannel = BEACON;
+		printf("\nPackets Received || Packets Sent (updated every second)\n");
 		printfflush();
+
+		channelSeq[0] = TOS_NODE_ID + 10;
+		channelSeq[1] = TOS_NODE_ID + 10 + 5;
+		channelSeq[2] = TOS_NODE_ID + 10 + 5 + 3;
+
+		printf("\nChannel sequence\n");
+		printf("Self || NextNode\n");
+		for(i=0;i<3;i++)
+			printf(" %d\t%d\n",channelSeq[i],channelSeq[i]+1);
+		printf("\n");
 	}
 	//_____________________________________________________//
 
@@ -117,9 +143,21 @@ implementation
 	//Event called when clock fires
 	//-----------------------------------------------------//
 	event void LocalClock.fired(){
+
+		// get global clock
+		loc = call LocalClock.getNow();
+		call GlobalTime.local2Global(&loc);
+
+		// increment count
 		count++;
+
+		// update channel if necessary
+		if(getChannel() != currentChannel)
+			setChannel(getChannel());
+		
+		// packet statistics
 		if(count % 50 == 0){
-			printf("\n%u %u",pktsReceived,pktsSent);
+			printf("\n<CH : %d> %u %u",currentChannel,pktsReceived,pktsSent);
 			printfflush();
 		}
 		
@@ -144,27 +182,16 @@ implementation
 	//-----------------------------------------------------//
 	int  getChannel( ){ 
 
-		int band = (loc/10)%10; 
 
-		if( (loc/1000)%10 == 9 || loc < 5000 )
-			return 11;
-
-		if(TOS_NODE_ID == 2){
-
-			if(band < 5)
-				return TOS_NODE_ID + 10;
-
-			else
-				return TOS_NODE_ID + 11;
+		if( loc < 5000 ){
+			currentChannel = BEACON;
+			return BEACON;
 		}
 
 		else{
-
-			if(band < 5)
-				return TOS_NODE_ID + 11;
-		
-			else
-				return TOS_NODE_ID + 10;
+			int band = (loc/1000)%10; 
+			currentChannel = channelSeq[0];
+			return channelSeq[0];
 		}
 
 	}
@@ -191,8 +218,8 @@ implementation
 	//_________________________________________//
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
 
-		setChannel(CHANNEL);
 		call Leds.led2Toggle(); 
+		setChannel(getChannel());
 		pktsSent++; 
 		locked = FALSE; 
 

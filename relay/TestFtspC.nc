@@ -57,7 +57,7 @@ implementation
 	uint32_t loc = 0; 
 
 	// channel sequence
-	int channelSeq[3];
+	int channelSeq[4];
 	/*channelSeq[0] = TOS_NODE_ID + 10;
 	channelSeq[1] = TOS_NODE_ID + 10 + 5;
 	channelSeq[2] = TOS_NODE_ID + 10 + 5 + 3;*/
@@ -93,16 +93,22 @@ implementation
 
 			radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
 
+			uint32_t rxTimestamp = call PacketTimeStamp.timestamp(msgPtr);
+			call GlobalTime.local2Global(&rxTimestamp);
+
 			// check if its a data packet or not
-			if(currentChannel == BEACON)
+			if(currentChannel == BEACON){
+				printfflush();
+				printf("\n%u %u",rcm->counter,rxTimestamp);
+				printfflush();
 				call Leds.led0Toggle();
+			}
 
 			else{
 				call Leds.led1Toggle();
 				pktsReceived++;
 				rcount = rcm->counter;
-				//setChannel(14);
-				setChannel(currentChannel+1);
+				setChannel(getNextChannel());
 				sendDataPacket(rcount);
 			}
 		}
@@ -126,8 +132,9 @@ implementation
 		printfflush();
 
 		channelSeq[0] = TOS_NODE_ID + 10;
-		channelSeq[1] = TOS_NODE_ID + 10 + 5;
-		channelSeq[2] = TOS_NODE_ID + 10 + 5 + 3;
+		channelSeq[1] = TOS_NODE_ID + 10 + 1; 
+		channelSeq[2] = TOS_NODE_ID + 10 + 1;
+		channelSeq[3] = TOS_NODE_ID + 10 + 2; 
 
 		printf("\nChannel sequence\n");
 		printf("Self || NextNode\n");
@@ -152,12 +159,13 @@ implementation
 		count++;
 
 		// update channel if necessary
-		if(getChannel() != currentChannel)
+		if(getChannel() != currentChannel){
 			setChannel(getChannel());
+		}
 		
 		// packet statistics
 		if(count % 50 == 0){
-			printf("\n<CH : %d> %u %u",currentChannel,pktsReceived,pktsSent);
+			printf("\n<CH : %d> %u %u @ %u",currentChannel,pktsReceived,pktsSent,loc);
 			printfflush();
 		}
 		
@@ -182,20 +190,38 @@ implementation
 	//-----------------------------------------------------//
 	int  getChannel( ){ 
 
+		int band = (loc/10000)%10; 
 
 		if( loc < 5000 ){
 			currentChannel = BEACON;
 			return BEACON;
 		}
 
-		else{
-			int band = (loc/1000)%10; 
-			currentChannel = channelSeq[0];
+		if(band % 2 == 0)
 			return channelSeq[0];
-		}
+		else
+			return channelSeq[1];
 
 	}
 	//_____________________________________________________//
+
+
+
+
+	//-----------------------------------------------------//
+	int  getNextChannel( ){
+
+		int band = (loc/10000)%10; 
+
+		if(band % 2 == 0)
+			return channelSeq[2];
+		else
+			return channelSeq[3];
+
+	}
+	//_____________________________________________________//
+
+
 
 
 
@@ -219,7 +245,12 @@ implementation
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
 
 		call Leds.led2Toggle(); 
-		setChannel(getChannel());
+
+		if(TOS_NODE_ID == 3)
+			setChannel(TOS_NODE_ID + 10);
+		else
+			setChannel(getChannel());
+
 		pktsSent++; 
 		locked = FALSE; 
 

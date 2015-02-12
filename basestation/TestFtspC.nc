@@ -6,14 +6,6 @@
 
 #define BEACON 11
 
-/*
-
-	 [ ] Add a timer - fires every SYNC seconds 
-	 [ ] Listen to beacons - when? - switch to beacon channel every SYNC seconds
-	 [ ] virtual global clock - fires every SWITCH seconds 
-	 [ ] channel switch - beacon -> current -> beacon 
-
- */
 module TestFtspC
 {
 	uses
@@ -42,8 +34,8 @@ implementation
 {
 	message_t msg;
 	bool locked = FALSE;
-	bool WAIT_FOR_SYNC = TRUE;
 	int count = 0;
+	unsigned int pktsReceived;
 	
 	// current channel status
 	int currentChannel = 0;
@@ -72,35 +64,16 @@ implementation
 
 
 	//_________________________________________//
-	event message_t* Receive.receive(message_t* msgPtr, void* payload, uint8_t len)
-	{
+	event message_t* Receive.receive(message_t* msgPtr, void* payload, uint8_t len){
 
-
-		// beacon messages
-		if (!locked && call PacketTimeStamp.isValid(msgPtr)) {
-
-			radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
+		/*radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
 			uint32_t rxTimestamp = call PacketTimeStamp.timestamp(msgPtr);
+			call GlobalTime.local2Global(&rxTimestamp);*/
 
-			call GlobalTime.local2Global(&rxTimestamp);
-
-			// if data packet - toggle led 01
-			if( currentChannel != 11 ){
-				call Leds.led1Toggle();
-				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
-			}
-
-			// if not data packet - toggle led 00
-			else{
-				call Leds.led0Toggle();
-				printf("\nBP: <Count %u>",rcm->counter);
-			}
-
-			printfflush();
-
-		}
-
+		pktsReceived++;
+		call Leds.led1Toggle();
 		return msgPtr;
+
 	}
 	//_________________________________________//
 
@@ -109,9 +82,11 @@ implementation
 
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
-		call LocalClock.startPeriodic(20);
-		setChannel(BEACON);
-		printf("\n<CCH %d> <Booted>",currentChannel);
+		pktsReceived = 0;
+		call LocalClock.startPeriodic(1000);
+		setChannel(14);
+		printf("\nPackets received per second\n");
+		printfflush();
 	}
 	//_____________________________________________________//
 
@@ -120,25 +95,9 @@ implementation
 
 	//Event called when clock fires
 	//-----------------------------------------------------//
-	event void LocalClock.fired(){
-		
-		loc = call LocalClock.getNow();
-		call GlobalTime.local2Global(&loc);
-		//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
-
-		if(getChannel( ) != currentChannel){
-			currentChannel = getChannel();
-			//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
-			setChannel(currentChannel);
-		}
-
-		count++;
-
-		//if sender
-		//  construct packet and send
-		if(TOS_NODE_ID == 2 && currentChannel != 11)
-			sendDataPacket();
-		
+	event void LocalClock.fired(){ 
+		printf("\n%d",pktsReceived); 
+		printfflush();
 	}
 //_____________________________________________________//
 

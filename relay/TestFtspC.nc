@@ -42,8 +42,11 @@ implementation
 {
 	message_t msg;
 	bool locked = FALSE;
-	bool WAIT_FOR_SYNC = TRUE;
-	int count = 0;
+
+	unsigned int count = 0;
+	unsigned int rcount = 0;
+	unsigned int pktsReceived = 0;
+	unsigned int pktsSent = 0;
 	
 	// current channel status
 	int currentChannel = 0;
@@ -55,7 +58,7 @@ implementation
 	//_________________________________________//
 	void setChannel(int);
 	int getChannel();
-	void sendDataPacket();
+	void sendDataPacket(unsigned int);
 	//_________________________________________//
 
 
@@ -75,29 +78,19 @@ implementation
 	event message_t* Receive.receive(message_t* msgPtr, void* payload, uint8_t len)
 	{
 
+		call Leds.led1Toggle();
 
 		// beacon messages
-		if (!locked && call PacketTimeStamp.isValid(msgPtr)) {
+		if (!locked){
 
 			radio_count_msg_t* rcm = (radio_count_msg_t*)call Packet.getPayload(msgPtr, sizeof(radio_count_msg_t));
-			uint32_t rxTimestamp = call PacketTimeStamp.timestamp(msgPtr);
 
-			call GlobalTime.local2Global(&rxTimestamp);
+			pktsReceived++;
 
-			// if data packet - toggle led 01
-			if( currentChannel != 11 ){
-				call Leds.led1Toggle();
-				printf("\nDP: <CCH %d> <Count %u>",currentChannel,rcm->counter);
-			}
+			rcount = rcm->counter;
 
-			// if not data packet - toggle led 00
-			else{
-				call Leds.led0Toggle();
-				printf("\nBP: <Count %u>",rcm->counter);
-			}
-
-			printfflush();
-
+			setChannel(14);
+			sendDataPacket(rcount);
 		}
 
 		return msgPtr;
@@ -110,8 +103,9 @@ implementation
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
 		call LocalClock.startPeriodic(20);
-		setChannel(BEACON);
-		printf("\n<CCH %d> <Booted>",currentChannel);
+		setChannel(13);
+		printf("\nPackets Received || Packets Sent per second\n");
+		printfflush();
 	}
 	//_____________________________________________________//
 
@@ -121,23 +115,11 @@ implementation
 	//Event called when clock fires
 	//-----------------------------------------------------//
 	event void LocalClock.fired(){
-		
-		loc = call LocalClock.getNow();
-		call GlobalTime.local2Global(&loc);
-		//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
-
-		if(getChannel( ) != currentChannel){
-			currentChannel = getChannel();
-			//printf("\n<gC %lu><CCH %d>",loc,currentChannel);
-			setChannel(currentChannel);
-		}
-
 		count++;
-
-		//if sender
-		//  construct packet and send
-		if(TOS_NODE_ID == 2 && currentChannel != 11)
-			sendDataPacket();
+		if(count % 50 == 0){
+			printf("\n%u %u",pktsReceived,pktsSent);
+			printfflush();
+		}
 		
 	}
 //_____________________________________________________//
@@ -150,7 +132,7 @@ implementation
 		currentChannel = chan;
 		call CC2420Config.setChannel(chan);
 		call CC2420Config.sync();
-		while(locked);
+		//while(locked);
 	}
 	//_____________________________________________________//
 
@@ -190,13 +172,13 @@ implementation
 
 
 	//_____________________________________________________//
-	void sendDataPacket(){
+	void sendDataPacket(unsigned int value){
 
 		radio_count_msg_t* my_data_pkt = (radio_count_msg_t*)call Packet.getPayload(&msg, sizeof(radio_count_msg_t));
-		my_data_pkt->counter = count;
+		my_data_pkt->counter = value;
 
-		if(call AMSend.send(AM_BROADCAST_ADDR,&msg,sizeof(radio_count_msg_t)) == SUCCESS) {
-			locked = TRUE;
+		if(call AMSend.send(TOS_NODE_ID+1,&msg,sizeof(radio_count_msg_t)) == SUCCESS) {
+			//locked = TRUE;
 		}
 	}
 	//_____________________________________________________//
@@ -206,8 +188,15 @@ implementation
 
 	//_________________________________________//
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
-		locked = FALSE; return;
+
+		setChannel(13);
+		call Leds.led2Toggle(); 
+		pktsSent++; 
+		locked = FALSE; 
+
+		return;
 	}
+
 	// channel switch  event
 	event void CC2420Config.syncDone(error_t error){ locked = FALSE; return;}
 	event void RadioControl.stopDone(error_t error){}

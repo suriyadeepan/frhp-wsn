@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]
+then
+	exit
+fi
+
+echo
+
+gnome-terminal  --title="Read from serial /dev/ttyUSB$1" --working-directory="$tos_fh" -x bash -c "java net.tinyos.tools.PrintfClient -comm serial@/dev/ttyUSB$1:micaz ; exec bash ; exit " &

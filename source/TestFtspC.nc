@@ -6,14 +6,6 @@
 
 #define BEACON 11
 
-/*
-
-	 [ ] Add a timer - fires every SYNC seconds 
-	 [ ] Listen to beacons - when? - switch to beacon channel every SYNC seconds
-	 [ ] virtual global clock - fires every SWITCH seconds 
-	 [ ] channel switch - beacon -> current -> beacon 
-
- */
 module TestFtspC
 {
 	uses
@@ -97,6 +89,7 @@ implementation
 
 		if(count % 20 == 0)
 			printf("\n%d",pktsSent);
+
 	}
 //_____________________________________________________//
 
@@ -118,29 +111,6 @@ implementation
 	//-----------------------------------------------------//
 	int  getChannel( ){ 
 
-		int band = (loc/10)%10; 
-
-		if( (loc/1000)%10 == 9 || loc < 5000 )
-			return 11;
-
-		if(TOS_NODE_ID == 2){
-
-			if(band < 5)
-				return TOS_NODE_ID + 10;
-
-			else
-				return TOS_NODE_ID + 11;
-		}
-
-		else{
-
-			if(band < 5)
-				return TOS_NODE_ID + 11;
-		
-			else
-				return TOS_NODE_ID + 10;
-		}
-
 	}
 	//_____________________________________________________//
 
@@ -151,7 +121,7 @@ implementation
 	void sendDataPacket(){
 
 		radio_count_msg_t* my_data_pkt = (radio_count_msg_t*)call Packet.getPayload(&msg, sizeof(radio_count_msg_t));
-		my_data_pkt->counter = count;
+		my_data_pkt->counter = count/100;
 
 		if(call AMSend.send(3,&msg,sizeof(radio_count_msg_t)) == SUCCESS) {
 			locked = TRUE;

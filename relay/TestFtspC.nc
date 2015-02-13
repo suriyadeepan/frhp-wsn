@@ -8,14 +8,6 @@
 
 #define CHANNEL (TOS_NODE_ID+10)
 
-/*
-
-	 [ ] Add a timer - fires every SYNC seconds 
-	 [ ] Listen to beacons - when? - switch to beacon channel every SYNC seconds
-	 [ ] virtual global clock - fires every SWITCH seconds 
-	 [ ] channel switch - beacon -> current -> beacon 
-
- */
 module TestFtspC
 {
 	uses
@@ -98,9 +90,9 @@ implementation
 
 			// check if its a data packet or not
 			if(currentChannel == BEACON){
-				printfflush();
-				printf("\n%u %u",rcm->counter,rxTimestamp);
-				printfflush();
+				//printfflush();
+				//printf("\n%u %u",rcm->counter,rxTimestamp);
+				//printfflush();
 				call Leds.led0Toggle();
 			}
 
@@ -128,11 +120,11 @@ implementation
 		call LocalClock.startPeriodic(20);
 		setChannel(BEACON);
 		currentChannel = BEACON;
-		printf("\nPackets Received || Packets Sent (updated every second)\n");
+		printf("\nPackets Received || Packets Sent || last packet value(updated every second)\n");
 		printfflush();
 
 		channelSeq[0] = TOS_NODE_ID + 10;
-		channelSeq[1] = TOS_NODE_ID + 10 + 1; 
+		channelSeq[1] = TOS_NODE_ID + 10; 
 		channelSeq[2] = TOS_NODE_ID + 10 + 1;
 		channelSeq[3] = TOS_NODE_ID + 10 + 2; 
 
@@ -165,7 +157,7 @@ implementation
 		
 		// packet statistics
 		if(count % 50 == 0){
-			printf("\n<CH : %d> %u %u @ %u",currentChannel,pktsReceived,pktsSent,loc);
+			printf("\n<CH : %d> %u %u %u",currentChannel,pktsReceived,pktsSent,rcount);
 			printfflush();
 		}
 		

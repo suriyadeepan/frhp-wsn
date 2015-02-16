@@ -6,6 +6,8 @@
 
 #define BEACON 11
 
+#define PACKETS_PER_SEC 50
+
 /*
 
 	 [ ] Add a timer - fires every SYNC seconds 
@@ -52,8 +54,6 @@ implementation
 	uint32_t loc = 0; 
 
 
-	//int mCh[2];
-	//int nCh[2];
 	//_________________________________________//
 	void setChannel(int);
 	int getChannel();
@@ -82,7 +82,7 @@ implementation
 
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
-		call LocalClock.startPeriodic(50);
+		call LocalClock.startPeriodic(1000/PACKETS_PER_SEC);
 		setChannel(13);
 		printf("\nPackets sent per second\n");
 	}

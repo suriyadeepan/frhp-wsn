@@ -17,6 +17,7 @@
 - [x] Change packet value to count/5secs
 - [x] Hop channels based on packet value
 - [x] Increase hopping channel sequence size
+- [x] Increase packet rate to 50, 100 packets/sec
 
 ## Control Flow
 ------------

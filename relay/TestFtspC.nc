@@ -6,6 +6,8 @@
 
 #define BEACON 11
 
+#define FHOP_COUNT 4
+
 #define CHANNEL (TOS_NODE_ID+10)
 
 /*
@@ -57,6 +59,12 @@ implementation
 	uint32_t loc = 0; 
 
 
+	int mCh[FHOP_COUNT];
+	int nCh[FHOP_COUNT];
+
+
+
+
 	//_________________________________________//
 	void setChannel(int);
 	int getChannel();
@@ -89,10 +97,12 @@ implementation
 
 			pktsReceived++;
 
+			setChannel(nCh[rcount%2]);
+
 			rcount = rcm->counter;
 
-			setChannel(CHANNEL+1);
 			sendDataPacket(rcount);
+
 		}
 
 		return msgPtr;
@@ -104,10 +114,39 @@ implementation
 
 	//-----------------------------------------------------//
 	event void RadioControl.startDone(error_t err) {
+
+		int i=0;
+
 		call LocalClock.startPeriodic(20);
 		setChannel(CHANNEL);
+
+		mCh[0] = TOS_NODE_ID + 10;
+
+		if(TOS_NODE_ID == 3){
+			mCh[1] = TOS_NODE_ID + 10;
+			mCh[2] = TOS_NODE_ID + 10;
+			mCh[3] = TOS_NODE_ID + 10;
+		}
+		
+		else{
+			mCh[1] = TOS_NODE_ID + 10 + 4;
+			mCh[2] = mCh[1] + 3;
+			mCh[3] = mCh[2] + 3;
+		}
+
+		nCh[0] = TOS_NODE_ID + 10 + 1;
+		nCh[1] = TOS_NODE_ID + 10 + 5;
+		nCh[2] = nCh[1]+3;
+		nCh[3] = nCh[2]+3;
+
+		printf("\nmy_channel || next_channel\n");
+		for(i=0;i<FHOP_COUNT;i++)
+			printf("%d %d\n",mCh[i],nCh[i]);
+		printf("\n");
+
 		printf("\nPackets Received || Packets Sent || Last packet value -  per second\n");
 		printfflush();
+		
 	}
 	//_____________________________________________________//
 
@@ -119,7 +158,7 @@ implementation
 	event void LocalClock.fired(){
 		count++;
 		if(count % 50 == 0){
-			printf("\n%u %u %u",pktsReceived,pktsSent,rcount);
+			printf("\n%u %u %u @%d",pktsReceived,pktsSent,rcount,currentChannel);
 			printfflush();
 			pktsReceived = 0;
 			pktsSent = 0;
@@ -193,7 +232,7 @@ implementation
 	//_________________________________________//
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
 
-		setChannel(CHANNEL);
+		setChannel(mCh[rcount%2]);
 		call Leds.led2Toggle(); 
 		pktsSent++; 
 		locked = FALSE; 

@@ -106,7 +106,7 @@ implementation
 	event void RadioControl.startDone(error_t err) {
 		call LocalClock.startPeriodic(20);
 		setChannel(CHANNEL);
-		printf("\nPackets Received || Packets Sent per second\n");
+		printf("\nPackets Received || Packets Sent || Last packet value -  per second\n");
 		printfflush();
 	}
 	//_____________________________________________________//
@@ -119,8 +119,10 @@ implementation
 	event void LocalClock.fired(){
 		count++;
 		if(count % 50 == 0){
-			printf("\n%u %u",pktsReceived,pktsSent);
+			printf("\n%u %u %u",pktsReceived,pktsSent,rcount);
 			printfflush();
+			pktsReceived = 0;
+			pktsSent = 0;
 		}
 		
 	}

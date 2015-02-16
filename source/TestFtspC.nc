@@ -52,10 +52,12 @@ implementation
 	uint32_t loc = 0; 
 
 
+	//int mCh[2];
+	//int nCh[2];
 	//_________________________________________//
 	void setChannel(int);
 	int getChannel();
-	void sendDataPacket();
+	void sendDataPacket(unsigned int);
 	//_________________________________________//
 
 
@@ -93,10 +95,7 @@ implementation
 	//-----------------------------------------------------//
 	event void LocalClock.fired(){
 		count++;
-		sendDataPacket();
-
-		if(count % 20 == 0)
-			printf("\n%d",pktsSent);
+		sendDataPacket(count/100);
 	}
 //_____________________________________________________//
 
@@ -148,10 +147,10 @@ implementation
 
 
 	//_____________________________________________________//
-	void sendDataPacket(){
+	void sendDataPacket(unsigned int _count){
 
 		radio_count_msg_t* my_data_pkt = (radio_count_msg_t*)call Packet.getPayload(&msg, sizeof(radio_count_msg_t));
-		my_data_pkt->counter = count;
+		my_data_pkt->counter = _count;
 
 		if(call AMSend.send(3,&msg,sizeof(radio_count_msg_t)) == SUCCESS) {
 			locked = TRUE;

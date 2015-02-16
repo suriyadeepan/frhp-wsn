@@ -98,6 +98,7 @@ implementation
 	//-----------------------------------------------------//
 	event void LocalClock.fired(){ 
 		printf("\n%d",pktsReceived); 
+		pktsReceived = 0;
 		printfflush();
 	}
 //_____________________________________________________//

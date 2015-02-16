@@ -16,7 +16,7 @@
 - [x] Add int getChannel(uint32_t globalClock) - maps global timestamp to channel
 - [x] Change packet value to count/5secs
 - [x] Hop channels based on packet value
-- [ ] Increase hopping channel sequence size
+- [x] Increase hopping channel sequence size
 
 ## Control Flow
 ------------

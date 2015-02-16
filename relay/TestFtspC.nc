@@ -97,7 +97,7 @@ implementation
 
 			pktsReceived++;
 
-			setChannel(nCh[rcount%2]);
+			setChannel(nCh[rcount%4]);
 
 			rcount = rcm->counter;
 
@@ -232,7 +232,7 @@ implementation
 	//_________________________________________//
 	event void AMSend.sendDone(message_t* ptr, error_t success) {
 
-		setChannel(mCh[rcount%2]);
+		setChannel(mCh[rcount%4]);
 		call Leds.led2Toggle(); 
 		pktsSent++; 
 		locked = FALSE; 

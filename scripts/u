@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]
+then
+	echo "check usage"
+	exit
+fi
+
+if [ $1 -eq 1 ]
+then
+	cd $tos_fh/source
+elif [ $1 -eq 2 ]
+then
+	cd $tos_fh/relay
+elif [ $2 -eq 3 ]
+then
+	cd $tos_fh/basestation
+fi
+
+echo
+echo "-- dir `pwd` --"
+echo
+echo "-- making --"
+echo
+make clean && make micaz 
+echo
+
+if [ $# -eq 2 ]
+then
+	echo "-- burning code to /dev/ttyUSB0--"
+	make micaz install.$2 mib520,/dev/ttyUSB0
+elif [ $# -eq 3 ]
+then
+	echo "-- burning code to /dev/ttyUSB$3 --"
+	make micaz install.$2 mib520,/dev/ttyUSB$3
+fi
+
+echo
+echo "-- burn complete --"
+
